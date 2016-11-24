@@ -32,7 +32,7 @@
 			<br />		
 	
 			<!-- Form -->
-			<form method="GET" action="SignInServlet">
+			<form method="POST" action="SignInServlet">
 				<!-- Ui-40 -->
 				<div class="ui-40">
 					<div class="ui-head bg-lblue">
@@ -74,7 +74,7 @@
 						<button type="submit" class="ui-button">Sign In</button> 
 					</div>
 					<div id="signup">
-						<p style="font-size:16px;text-align:center;"><a href="http://localhost:8080/WebChat/signup.jsp">Click here to sign up</a></p>
+						<p style="font-size:16px;text-align:center;"><a href="http://env-7443164.j.dnr.kz/WebChat/signup.jsp">Click here to sign up</a></p>
 					</div>
 					<%if (request.getAttribute("isError") != null && (Boolean) request.getAttribute("isError")){ %>
 					<div id="errors">

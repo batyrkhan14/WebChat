@@ -9,6 +9,10 @@ import javax.persistence.Persistence;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 
+import org.eclipse.persistence.config.CacheUsage;
+import org.eclipse.persistence.config.HintValues;
+import org.eclipse.persistence.config.QueryHints;
+
 import kz.aleh.web.chat.dto.ContactDto;
 import kz.aleh.web.chat.dto.MessageDto;
 import kz.aleh.web.chat.model.Link;
@@ -32,9 +36,9 @@ public class Dao {
 	}
 
 	public synchronized int addMessage(Message message) throws Exception {
-		message.setDate(new Date());
 		beginTransaction();
 		entityManager.persist(message);
+		System.out.println("messageID: " + message.getId());
 		commit();
 		return message.getId();
 	}
@@ -65,7 +69,7 @@ public class Dao {
 		Query q = entityManager.createNamedQuery("Link.getContactsOfUser").setParameter("userId", userId);
 		@SuppressWarnings("unchecked")
 		List<Link> links = (List<Link>) q.getResultList();
-		System.out.println("Link size: " + links.size());
+		//System.out.println("Link size: " + links.size());
 		List<ContactDto> result = new ArrayList<>();
 		for (Link link : links) {
 			int contactId;
@@ -81,7 +85,7 @@ public class Dao {
 			ContactDto contactDto = new ContactDto(contact, link.isAccepted(), isReceiver);
 			result.add(contactDto);
 		}
-		System.out.println("Result size: " + result.size());
+		//System.out.println("Result size: " + result.size());
 		return result;
 	}
 
@@ -112,6 +116,16 @@ public class Dao {
 			messages.add(new MessageDto(msg));
 		}
 		return messages;
+	}
+
+	public void updateLastSeen(int userId) {
+		try {
+			User user = getUser(userId);
+			user.setLastSeen(new Date());
+			editUser(user);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void beginTransaction() {

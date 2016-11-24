@@ -1,5 +1,6 @@
 package kz.aleh.web.chat.websocket;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.websocket.OnClose;
@@ -27,6 +28,7 @@ public class ChatWebSocket {
 			+ "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";	
 	private ContactListSender contactListSender;
 	private MessagesListSender messagesListSender;
+	private LastSeenUpdater lastSeenUpdater;
 	private Dao dao;
 	{
 		dao = new Dao();
@@ -41,6 +43,8 @@ public class ChatWebSocket {
 			case "userId":
 				contactListSender = new ContactListSender(this, request.get("userId").getAsInt());
 				contactListSender.start();
+				lastSeenUpdater = new LastSeenUpdater(request.get("userId").getAsInt());
+				lastSeenUpdater.start();
 				break;
 			case "addContact":
 				addContact(request.get("userId").getAsInt(), request.get("contactEmail").getAsString());
@@ -63,6 +67,27 @@ public class ChatWebSocket {
 	@OnClose
 	public void onClose(){
 		this.session = null;
+		terminateThreads();
+	}
+	
+	@OnError
+	public void onError(Throwable t){
+		terminateThreads();
+	}
+	
+	private void sendMessage(String s){
+		//System.out.println("Sending: " + s);
+		this.session.getAsyncRemote().sendText(s);
+	}
+	public void sendContactList(int userId){
+		Dao temp = new Dao();
+		List<ContactDto> contacts = temp.getContactListOfUser(userId);
+		temp = null;
+		Gson gson = new Gson();
+		String msg = gson.toJson(new MessageWrapper("contactList", contacts));
+		sendMessage(msg);				
+	}
+	private void terminateThreads(){
 		if (contactListSender != null){
 			contactListSender.terminate();
 			try {
@@ -79,24 +104,15 @@ public class ChatWebSocket {
 				e.printStackTrace();
 			}
 		}
+		if (lastSeenUpdater != null){
+			lastSeenUpdater.terminate();
+			try {
+				lastSeenUpdater.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
-	
-	@OnError
-	public void onError(Throwable t){
-		
-	}
-	
-	private void sendMessage(String s){
-		System.out.println("Sending: " + s);
-		this.session.getAsyncRemote().sendText(s);
-	}
-	public void sendContactList(int userId){
-		List<ContactDto> contacts = dao.getContactListOfUser(userId);
-		Gson gson = new Gson();
-		String msg = gson.toJson(new MessageWrapper("contactList", contacts));
-		sendMessage(msg);				
-	}
-	
 	private void addContact(int userId, String contactEmail){
 		String message = null;
 		boolean success = false;
@@ -139,8 +155,10 @@ public class ChatWebSocket {
 				}
 			}
 		}
+		
 		if (message == null) message = "Unknown server error, please try again.";
 		sendMessage(new Gson().toJson(new MessageWrapper("addContactResponse", new AddContactResponse(message, success))));
+		if (success) this.sendContactList(userId);
 	}
 	public void sendMessagesList(int userId, int contactId){
 		List<MessageDto> messages = dao.getMessages(userId, contactId);
@@ -157,16 +175,21 @@ public class ChatWebSocket {
 	}
 	public void addMessage(int senderId, int receiverId, String message){
 		try {
-			//System.out.println(message);
+			System.out.println("SenderId: " + senderId + ", ReceiverId: " + receiverId + " , Message: " + message);
 			User sender = dao.getUser(senderId);
 			User receiver = dao.getUser(receiverId);
 			Message msg = new Message();
 			msg.setSender(sender);
 			msg.setReceiver(receiver);
 			msg.setContent(message);
+			msg.setDate(new Date());
 			dao.addMessage(msg);
+			this.sendMessagesList(senderId, receiverId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	public void updateLastSeen(int userId){
+		dao.updateLastSeen(userId);
 	}
 }

@@ -1,6 +1,6 @@
-var webSocket = new WebSocket("ws://localhost:8080/WebChat/ChatWebSocket");
+var webSocket = new WebSocket("ws://env-7443164.j.dnr.kz/WebChat/ChatWebSocket");
 var selectedContact = -1;
-
+var chl = true;
 webSocket.onopen = function(event){
 	sendUserId(userId);
 }
@@ -21,6 +21,10 @@ webSocket.onmessage = function(event){
 	}
 }
 
+webSocket.onerror = function(event){
+	window.alert("Unexpected server error occured. Please update the page.");
+}
+
 function sendMessage(message){
 	console.log("sending: " + message);
 	webSocket.send(message);
@@ -38,13 +42,21 @@ function updateContactList(contacts){
 	div.innerHTML = "";
 	for (var i = 0; i < contacts.length; i++){
 		var contact = contacts[i];
-		div.innerHTML  += 	"<div class='chat-member'>" +
+		if (i == 0 && selectedContact == -1){
+			changeContact(contact.id); 
+		}
+		var status;
+		if (contact.secs <= 5) status = "st-live";
+		else if (contact.secs <= 60) status = "st-busy";
+		else status = "st-off";
+		var firstChar = (contact.name).toUpperCase().charAt(0);		
+		div.innerHTML  += 	"<div style='cursor:pointer' onclick='changeContact("+ contact.id +")' id='contact" + contact.id + "'class='chat-member " + ((contact.id == selectedContact) ? "active" : "")+ "'>" +
 				        		"<div class='img-container'>" +
-				        	    	"<a href='#'><img class='mg-responsive' src='img/user/2.jpg' alt='' /></a>" +
-				        	    	"<span class='st-live status'></span>" +
+				        	    	"<a href='#'><img class='mg-responsive' src='img/profile_pictures/" + firstChar + ".png' alt='' /></a>" +
+				        	    	"<span class='" + status + " status'></span>" +
 				        	    "</div>" +
-				        	    "<h4><a href='#' onclick='changeContact("+ contact.id +")'>" + contact.name + "</a></h4>" +
-				        	    "<p>I am online now.</p>" +
+				        	    "<h4>" + contact.name + "</h4>" +
+				        	    "<p>" + contact.lastSeen + "</p>" +
 				        	    "<div class='clearfix'></div>" +
 				        	"</div>";
 	}
@@ -61,9 +73,10 @@ function updateMessagesList(messages){
 		else{
 			type = "chat-in";
 		}
+		var firstChar = (message.senderName).toUpperCase().charAt(0);
 		div.innerHTML += "<div class='chat-box " + type + "'>" +
 						    "<div class='img-container'>" +
-						        "<img class='img-responsive' src='img/user/4.jpg' alt='' />" +
+						        "<img class='img-responsive' src='img/profile_pictures/" + firstChar + ".png' alt='' />" +
 						    "</div>" +
 						    "<div class='message'>" +
 						        "<h5><i class='fa fa-clock-o'></i>&nbsp; " + message.date + "</h5>" +
@@ -71,6 +84,14 @@ function updateMessagesList(messages){
 						    "</div>" +
 						    "<div class='clearfix'></div>" +
 						"</div>";
+	}
+	if (messages.length == 0){
+		div.innerHTML += "<p style='text-align:center;color:#c1d5f4;font-size:25px;'>Send message to start conversation</p>";
+	}
+	div.innerHTML += "<div id='comeHere'></div>";
+	if (chl){
+		location.hash = "#comeHere";
+		chl = false;
 	}
 }
 function addContact(){
@@ -97,6 +118,14 @@ function handleAddContactResponse(response){
 
 function changeContact(contactId){
 	if (contactId != selectedContact){
+		if (selectedContact != -1){
+			console.log("old contact id: #contact" + selectedContact);
+			var divOld = document.getElementById("contact" + selectedContact);
+			if (divOld == null) console.log("NULL");
+			if (divOld != null) divOld.classList.remove("active");
+		}
+		var divNew = document.getElementById("contact" + contactId);
+		if (divNew != null) divNew.classList.add("active");
 		console.log("Sending: " + contactId);
 		selectedContact = contactId;
 		msg = {
@@ -105,6 +134,7 @@ function changeContact(contactId){
 			contactId: contactId
 		};
 		sendMessage(JSON.stringify(msg));
+		chl = true;
 	}
 }
 
@@ -118,5 +148,7 @@ function sendChatMessage(){
 	};
 	if (selectedContact != -1 && message != ""){
 		sendMessage(JSON.stringify(msg));
+		document.getElementById("chatMessage").value = "";
 	}
+	chl = true;
 }

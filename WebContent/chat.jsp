@@ -145,7 +145,7 @@
                     <div class="col-md-8 col-sm-8">
                         <h3><i class="fa fa-comments-o lblue"></i>&nbsp; Live Chat</h3>
                         <!-- Profile chat content -->
-                        <div id="messagesList" class="chat-content">
+                        <div id="messagesList" class="chat-content" style="min-height:400px">
 <!--                         
                             <div class="chat-box chat-in">
                                 <div class="img-container">

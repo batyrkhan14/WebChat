@@ -94,7 +94,7 @@
 						<button type="submit" class="ui-button">Sign Up</button> 
 					</div>
 					<div id="signin">
-						<p style="font-size:16px;text-align:center;"><a href="http://localhost:8080/WebChat/index.jsp">Already have an account? Sign in</a></p>
+						<p style="font-size:16px;text-align:center;"><a href="http://env-7443164.j.dnr.kz/WebChat/index.jsp">Already have an account? Sign in</a></p>
 					</div>
 					<%if (request.getAttribute("errors") != null){ %>
 					<div id="errors">
